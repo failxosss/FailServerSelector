@@ -65,6 +65,8 @@ public final class ActionExecutor {
             }
         }
 
+        final String fArg = arg;
+
         switch (tag) {
             case "console" -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), stripSlash(arg));
             case "op" -> {
@@ -97,8 +99,8 @@ public final class ActionExecutor {
                 player.sendPluginMessage(plugin, "BungeeCord", out.toByteArray());
             }
             case "open" -> Bukkit.getScheduler().runTask(plugin, () -> {
-                if (!plugin.openMenu(player, arg)) {
-                    plugin.msg(player, "unknown-menu", "%menu%", arg);
+                if (!plugin.openMenu(player, fArg)) {
+                    plugin.msg(player, "unknown-menu", "%menu%", fArg);
                 }
             });
             case "close" -> Bukkit.getScheduler().runTask(plugin, () -> player.closeInventory());
