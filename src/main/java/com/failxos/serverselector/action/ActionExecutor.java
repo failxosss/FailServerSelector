@@ -101,7 +101,7 @@ public final class ActionExecutor {
                     plugin.msg(player, "unknown-menu", "%menu%", arg);
                 }
             });
-            case "close" -> Bukkit.getScheduler().runTask(plugin, player::closeInventory);
+            case "close" -> Bukkit.getScheduler().runTask(plugin, () -> player.closeInventory());
             case "toggle-players" -> plugin.visibility().toggle(player);
             case "", "player" -> player.performCommand(stripSlash(arg));
             default -> plugin.getLogger().warning("Unknown action tag: [" + tag + "]");
