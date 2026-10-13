@@ -1,0 +1,357 @@
+# =====================================================================
+#  ServerSelector by Failxos
+# =====================================================================
+#  TEXT FORMAT
+#   - MiniMessage:  <red>, <#ff8800>, <gradient:red:blue>text</gradient>, <bold> ...
+#   - Legacy codes: &c, &l, &#ff8800 also work.
+#   - Placeholders: %player% %uuid% %world% %online% (+ PlaceholderAPI if installed)
+#
+#  ITEM OPTIONS (same for hotbar items, menu items and filler items)
+#   material:            any Bukkit material (STONE, NETHER_STAR, PLAYER_HEAD ...)
+#   head:                makes the item a player head. Use a skin NAME ("Notch"),
+#                        "texture:<base64 value>", "url:<textures.minecraft.net url>"
+#                        or "uuid:<uuid>"
+#   itemsadder:          "namespace:item_id" -> uses the ItemsAdder item instead of
+#                        'material'. Falls back to 'material' if ItemsAdder is missing.
+#                        name / lore (if set) still override the ItemsAdder ones.
+#   name / lore:         display name and lore lines
+#   amount, glow, unbreakable, hide-tooltip, flags: [HIDE_ATTRIBUTES, ...]
+#   custom-model-data:   number (resource pack)
+#   item-model:          "namespace:model" (1.21.4+ resource pack item model)
+#   slot / slots:        slot number / list of slot numbers
+#   permission:          permission required to use the item
+#   worlds:              where the item is available (hotbar items only)
+#                          mode: WHITELIST | BLACKLIST
+#                          list: [world names]   (empty list = every world)
+#   click-types:         LEFT, RIGHT, SHIFT_LEFT, SHIFT_RIGHT (default RIGHT + SHIFT_RIGHT)
+#   cooldown-ticks:      click cooldown (20 ticks = 1 second)
+#
+#  ACTIONS (lists of strings)
+#   actions:                     run on any click
+#   left-click-actions / right-click-actions /
+#   shift-left-click-actions / shift-right-click-actions:  run only on that click
+#
+#   [player] <command>     run command as the player (no tag = same thing)
+#   [console] <command>    run command as console
+#   [op] <command>         run command as player with temporary OP (needs settings.allow-op-actions)
+#   [message] <text>       send a message
+#   [broadcast] <text>     broadcast a message
+#   [actionbar] <text>     show an action bar
+#   [title] <title>;<subtitle>
+#   [sound] <key>;<volume>;<pitch>     e.g. [sound] minecraft:ui.button.click;1;1
+#   [server] <name>        send to a BungeeCord/Velocity server
+#   [open] <menu>          open a menu from the 'menus' section
+#   [close]                close the current menu
+#   [toggle-players]       toggle player visibility
+#   [delay] <ticks>        delay all following actions in the list
+# =====================================================================
+
+settings:
+  # Clear the whole inventory when a player joins.
+  clear-inventory-on-join: false
+  # Ticks to wait after joining before the items are given.
+  join-delay-ticks: 2
+  # true  = plugin items replace whatever is in their slot (the old item is moved elsewhere)
+  # false = an item is skipped if its slot is occupied
+  force-slot: true
+  # Remember the hide/show players choice after a player leaves.
+  remember-player-visibility: true
+  # Players with 'serverselector.bypass.hide' are never hidden.
+  staff-bypass-hide: true
+  # Show everyone again in worlds where the player toggle item is not available.
+  show-players-where-toggle-disabled: true
+  # Allow [op] actions (dangerous, keep disabled unless you know what you do).
+  allow-op-actions: false
+
+protection:
+  prevent-drop: true
+  prevent-move: true
+  prevent-swap-hand: true
+  remove-from-death-drops: true
+  # Permission 'serverselector.bypass.protect' ignores all of these.
+
+messages:
+  prefix: ""
+  reload: "<green>ServerSelector configuration reloaded."
+  refreshed: "<green>Refreshed items of <white>%player%<green>."
+  no-permission: "<red>You do not have permission to do that."
+  unknown-menu: "<red>Unknown menu: <white>%menu%"
+  player-not-found: "<red>Player not found: <white>%player%"
+  player-only: "<red>This command can only be used by a player."
+  usage: "<gray>Usage: <white>/serverselector <open <menu> [player] | refresh [player] | reload>"
+
+# =====================================================================
+#  HOTBAR ITEMS (given on join, world change and respawn)
+# =====================================================================
+join-items:
+
+  server-selector:
+    enabled: true
+    slot: 4                      # middle of the hotbar
+    material: NETHER_STAR
+    # itemsadder: "namespace:server_selector"
+    name: "<yellow>Server Selector"
+    lore:
+      - "<gray>Right-click to open the server selector!"
+    click-types: [RIGHT, SHIFT_RIGHT]
+    cooldown-ticks: 10
+    worlds:                      # e.g. only in the lobby:  mode: WHITELIST, list: [lobby]
+      mode: WHITELIST
+      list: []                   # empty = every world
+    actions:
+      - "[sound] minecraft:ui.button.click;1;1"
+      - "[open] selector"
+
+  player-toggle:
+    type: PLAYER_TOGGLE
+    enabled: true
+    slot: 8                      # edge of the hotbar
+    click-types: [RIGHT, SHIFT_RIGHT]
+    cooldown-ticks: 20
+    worlds:
+      mode: WHITELIST
+      list: []
+    # 'shown' = item while players are visible, 'hidden' = item while players are hidden.
+    # 'actions' of a state run when the player SWITCHES to that state.
+    shown:
+      material: LIME_DYE
+      # itemsadder: "namespace:players_shown"
+      name: "<green><bold>Players</bold> <dark_gray>></dark_gray> <green>Shown <gray>(Right-Click)"
+      lore:
+        - "<gray>Click to hide all players!"
+      actions:
+        - "[sound] minecraft:entity.experience_orb.pickup;1;1.5"
+        - "[actionbar] <green>Players are now visible."
+    hidden:
+      material: GRAY_DYE
+      # itemsadder: "namespace:players_hidden"
+      name: "<red><bold>Players</bold> <dark_gray>></dark_gray> <red>Hidden <gray>(Right-Click)"
+      lore:
+        - "<gray>Click to show all players!"
+      actions:
+        - "[sound] minecraft:entity.experience_orb.pickup;1;0.7"
+        - "[actionbar] <red>Players are now hidden."
+
+# =====================================================================
+#  MENUS
+# =====================================================================
+menus:
+
+  selector:
+    title: "Server Selector"
+    rows: 5                      # 1-6
+    open-actions:
+      - "[sound] minecraft:block.chest.open;0.6;1.2"
+
+    # Filler layout: one string per row, 9 characters per row.
+    # Every character is a key of 'legend'. '_' (or any unknown character) = empty.
+    # Use only letters as legend keys (avoid Y, N, '.', '#', '-').
+    # Items under 'items' always override the filler.
+    fill:
+      layout:
+        - "DBGBGBGBG"
+        - "BDDDDDDDB"
+        - "GDDDDDDDG"
+        - "BDDDDDDDB"
+        - "GBGBGBGBD"
+      legend:
+        B:
+          material: BLUE_STAINED_GLASS_PANE
+          name: " "
+          hide-tooltip: true
+        G:
+          material: LIME_STAINED_GLASS_PANE
+          name: " "
+          hide-tooltip: true
+        D:
+          material: GRAY_STAINED_GLASS_PANE
+          name: " "
+          hide-tooltip: true
+
+    items:
+      globe:
+        slot: 0
+        material: COMPASS
+        name: "<aqua><bold>Select a server"
+        lore:
+          - "<gray>Pick one of the servers below."
+
+      close:
+        slot: 44
+        material: BARRIER
+        name: "<red><bold>Close"
+        lore:
+          - "<gray>Click to close this menu."
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[close]"
+
+      server_1:
+        slot: 11
+        # Black placeholder head. Replace with a skin name, e.g.  head: "SkinName"
+        # or a texture:  head: "texture:BASE64VALUE"   (or use 'itemsadder: "ns:id"')
+        material: WITHER_SKELETON_SKULL
+        name: "<white><bold>Server 1"
+        lore:
+          - "<gray>This slot is not set up yet."
+          - "<red>Admin: edit this item in"
+          - "<white>plugins/ServerSelector/config.yml"
+          - ""
+          - "<yellow>Click to connect!"
+        # Examples:  - "[server] survival"   - "[console] say %player% clicked"
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[message] <yellow>Server 1 is not configured yet!"
+
+      server_2:
+        slot: 13
+        # Black placeholder head. Replace with a skin name, e.g.  head: "SkinName"
+        # or a texture:  head: "texture:BASE64VALUE"   (or use 'itemsadder: "ns:id"')
+        material: WITHER_SKELETON_SKULL
+        name: "<white><bold>Server 2"
+        lore:
+          - "<gray>This slot is not set up yet."
+          - "<red>Admin: edit this item in"
+          - "<white>plugins/ServerSelector/config.yml"
+          - ""
+          - "<yellow>Click to connect!"
+        # Examples:  - "[server] survival"   - "[console] say %player% clicked"
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[message] <yellow>Server 2 is not configured yet!"
+
+      server_3:
+        slot: 15
+        # Black placeholder head. Replace with a skin name, e.g.  head: "SkinName"
+        # or a texture:  head: "texture:BASE64VALUE"   (or use 'itemsadder: "ns:id"')
+        material: WITHER_SKELETON_SKULL
+        name: "<white><bold>Server 3"
+        lore:
+          - "<gray>This slot is not set up yet."
+          - "<red>Admin: edit this item in"
+          - "<white>plugins/ServerSelector/config.yml"
+          - ""
+          - "<yellow>Click to connect!"
+        # Examples:  - "[server] survival"   - "[console] say %player% clicked"
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[message] <yellow>Server 3 is not configured yet!"
+
+      server_4:
+        slot: 19
+        # Black placeholder head. Replace with a skin name, e.g.  head: "SkinName"
+        # or a texture:  head: "texture:BASE64VALUE"   (or use 'itemsadder: "ns:id"')
+        material: WITHER_SKELETON_SKULL
+        name: "<white><bold>Server 4"
+        lore:
+          - "<gray>This slot is not set up yet."
+          - "<red>Admin: edit this item in"
+          - "<white>plugins/ServerSelector/config.yml"
+          - ""
+          - "<yellow>Click to connect!"
+        # Examples:  - "[server] survival"   - "[console] say %player% clicked"
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[message] <yellow>Server 4 is not configured yet!"
+
+      server_5:
+        slot: 21
+        # Black placeholder head. Replace with a skin name, e.g.  head: "SkinName"
+        # or a texture:  head: "texture:BASE64VALUE"   (or use 'itemsadder: "ns:id"')
+        material: WITHER_SKELETON_SKULL
+        name: "<white><bold>Server 5"
+        lore:
+          - "<gray>This slot is not set up yet."
+          - "<red>Admin: edit this item in"
+          - "<white>plugins/ServerSelector/config.yml"
+          - ""
+          - "<yellow>Click to connect!"
+        # Examples:  - "[server] survival"   - "[console] say %player% clicked"
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[message] <yellow>Server 5 is not configured yet!"
+
+      server_6:
+        slot: 23
+        # Black placeholder head. Replace with a skin name, e.g.  head: "SkinName"
+        # or a texture:  head: "texture:BASE64VALUE"   (or use 'itemsadder: "ns:id"')
+        material: WITHER_SKELETON_SKULL
+        name: "<white><bold>Server 6"
+        lore:
+          - "<gray>This slot is not set up yet."
+          - "<red>Admin: edit this item in"
+          - "<white>plugins/ServerSelector/config.yml"
+          - ""
+          - "<yellow>Click to connect!"
+        # Examples:  - "[server] survival"   - "[console] say %player% clicked"
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[message] <yellow>Server 6 is not configured yet!"
+
+      server_7:
+        slot: 25
+        # Black placeholder head. Replace with a skin name, e.g.  head: "SkinName"
+        # or a texture:  head: "texture:BASE64VALUE"   (or use 'itemsadder: "ns:id"')
+        material: WITHER_SKELETON_SKULL
+        name: "<white><bold>Server 7"
+        lore:
+          - "<gray>This slot is not set up yet."
+          - "<red>Admin: edit this item in"
+          - "<white>plugins/ServerSelector/config.yml"
+          - ""
+          - "<yellow>Click to connect!"
+        # Examples:  - "[server] survival"   - "[console] say %player% clicked"
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[message] <yellow>Server 7 is not configured yet!"
+
+      server_8:
+        slot: 29
+        # Black placeholder head. Replace with a skin name, e.g.  head: "SkinName"
+        # or a texture:  head: "texture:BASE64VALUE"   (or use 'itemsadder: "ns:id"')
+        material: WITHER_SKELETON_SKULL
+        name: "<white><bold>Server 8"
+        lore:
+          - "<gray>This slot is not set up yet."
+          - "<red>Admin: edit this item in"
+          - "<white>plugins/ServerSelector/config.yml"
+          - ""
+          - "<yellow>Click to connect!"
+        # Examples:  - "[server] survival"   - "[console] say %player% clicked"
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[message] <yellow>Server 8 is not configured yet!"
+
+      server_9:
+        slot: 31
+        # Black placeholder head. Replace with a skin name, e.g.  head: "SkinName"
+        # or a texture:  head: "texture:BASE64VALUE"   (or use 'itemsadder: "ns:id"')
+        material: WITHER_SKELETON_SKULL
+        name: "<white><bold>Server 9"
+        lore:
+          - "<gray>This slot is not set up yet."
+          - "<red>Admin: edit this item in"
+          - "<white>plugins/ServerSelector/config.yml"
+          - ""
+          - "<yellow>Click to connect!"
+        # Examples:  - "[server] survival"   - "[console] say %player% clicked"
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[message] <yellow>Server 9 is not configured yet!"
+
+      server_10:
+        slot: 33
+        # Black placeholder head. Replace with a skin name, e.g.  head: "SkinName"
+        # or a texture:  head: "texture:BASE64VALUE"   (or use 'itemsadder: "ns:id"')
+        material: WITHER_SKELETON_SKULL
+        name: "<white><bold>Server 10"
+        lore:
+          - "<gray>This slot is not set up yet."
+          - "<red>Admin: edit this item in"
+          - "<white>plugins/ServerSelector/config.yml"
+          - ""
+          - "<yellow>Click to connect!"
+        # Examples:  - "[server] survival"   - "[console] say %player% clicked"
+        actions:
+          - "[sound] minecraft:ui.button.click;1;1"
+          - "[message] <yellow>Server 10 is not configured yet!"

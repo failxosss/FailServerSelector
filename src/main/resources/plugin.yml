@@ -1,0 +1,28 @@
+name: ServerSelector
+version: '${project.version}'
+main: com.failxos.serverselector.ServerSelectorPlugin
+api-version: '1.21'
+description: Configurable lobby hotbar items, server selector GUI and player visibility toggle.
+authors: [Failxos]
+website: https://github.com/Failxos/ServerSelector
+softdepend: [ItemsAdder, PlaceholderAPI]
+
+commands:
+  serverselector:
+    description: ServerSelector main command
+    usage: /<command> <reload|open|refresh>
+    aliases: [ss]
+
+permissions:
+  serverselector.admin:
+    description: Reload, refresh items and open menus for other players
+    default: op
+  serverselector.open:
+    description: Open menus with /serverselector open
+    default: true
+  serverselector.bypass.hide:
+    description: Players with this permission are never hidden by the visibility toggle
+    default: op
+  serverselector.bypass.protect:
+    description: Allows moving/dropping the plugin items
+    default: op
